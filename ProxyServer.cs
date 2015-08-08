@@ -31,7 +31,7 @@ namespace HTTPProxyServer
 
         private TcpListener _listener;
         private Thread _listenerThread;
-        private Thread _cacheMaintenanceThread;
+        
 
         public IPAddress ListeningIPInterface
         {
@@ -96,10 +96,9 @@ namespace HTTPProxyServer
             }
 
             _listenerThread = new Thread(new ParameterizedThreadStart(Listen));
-            _cacheMaintenanceThread = new Thread(new ThreadStart(ProxyCache.CacheMaintenance));
+
 
             _listenerThread.Start(_listener);
-            _cacheMaintenanceThread.Start();
 
             return true;
         }
@@ -111,7 +110,6 @@ namespace HTTPProxyServer
             //wait for server to finish processing current connections...
 
             _listenerThread.Abort();
-            _cacheMaintenanceThread.Abort();
             _listenerThread.Join();
             _listenerThread.Join();
         }
@@ -292,6 +290,7 @@ namespace HTTPProxyServer
                     {
                         List<Tuple<String,String>> responseHeaders = ProcessResponse(response);
                         StreamWriter myResponseWriter = new StreamWriter(outStream);
+                        myResponseWriter.AutoFlush = true;
                         Stream responseStream = response.GetResponseStream();
                         try
                         {
@@ -447,7 +446,6 @@ namespace HTTPProxyServer
                     myResponseWriter.WriteLine(String.Format("{0}: {1}", header.Item1,header.Item2));
             }
             myResponseWriter.WriteLine();
-            myResponseWriter.Flush();
 
             if (Server.DumpHeaders)
                 DumpHeaderCollectionToConsole(headers);
@@ -504,6 +502,11 @@ namespace HTTPProxyServer
                         break;
                     case "content-type":
                         webReq.ContentType = header[1];
+                        break;
+                    case "range": //bytes=100-200
+                        var split1 = header[1].Split(equalSplit);
+                        var split2 = split1[1].Split(new char[] { '-' });
+                        webReq.AddRange(int.Parse(split2[0]), int.Parse(split2[1]));
                         break;
                     case "if-modified-since":
                         String[] sb = header[1].Trim().Split(semiSplit);

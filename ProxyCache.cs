@@ -108,30 +108,5 @@ namespace HTTPProxyServer
             }
             return true;
         }
-
-        public static void CacheMaintenance()
-        {
-            try
-            {
-                while (true)
-                {
-                    Thread.Sleep(30000);
-                    List<CacheKey> keysToRemove = new List<CacheKey>();
-                    foreach (CacheKey key in _cache.Keys)
-                    {
-                        CacheEntry entry = (CacheEntry)_cache[key];
-                        if (entry.FlagRemove || entry.Expires < DateTime.Now)
-                            keysToRemove.Add(key);
-                    }
-
-                    foreach (CacheKey key in keysToRemove)
-                        _cache.Remove(key);
-
-                    Console.WriteLine(String.Format("Cache maintenance complete.  Number of items stored={0} Number of cache hits={1} ", _cache.Count, _hits));
-                }
-            }
-            catch (ThreadAbortException) { }
-        }
-
     }
 }
